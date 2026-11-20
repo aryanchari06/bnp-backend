@@ -99,3 +99,24 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
         next(error)
     }
 }
+
+export const logout = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await connectDB()
+
+        const userId = req.auth?.userId
+        if (userId) { 
+            // add revocation of refresh token
+            // await logout(userId)
+
+            res.clearCookie('access', { path: '/' })
+            res.clearCookie('refresh', { path: '/auth/refresh' })
+            return HttpResponse(res, {
+                statusCode: 200,
+                body: { message: "Logged out successfully!" }
+            })
+        } else throw new Error('Somthing went wrong.')
+    } catch (error) {
+        next(error)
+    }
+}
