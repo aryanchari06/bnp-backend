@@ -74,7 +74,6 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 }
 
 export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
-    console.log('inside change password handler...')
     try {
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
