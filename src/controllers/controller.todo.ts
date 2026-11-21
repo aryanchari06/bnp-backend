@@ -3,6 +3,7 @@ import { connectDB } from "../config/database.js";
 import TodoRepository from '../repositories/repository.todo.js'
 import { HttpResponse } from "../utils/http-response.js";
 import * as z from 'zod'
+import type { TodoFilters } from '../types/todos.js'
 
 const CreatePayload = z.object({
     title: z.string({ error: 'Title is required' })
@@ -27,18 +28,25 @@ const TodoIdPayload = z.object({
 export const list = async (req: Request, res: Response, next: NextFunction) => {
     try {
         await connectDB()
-        //pageinate and filter
-        const { page: rawPage = 1, pageSize: rawPageSize = 10 } = req.query
+
+        const { page: rawPage = 1, pageSize: rawPageSize = 10, title: rawTitle, isCompleted: rawIsCompleted } = req.query
         const page = Number(rawPage)
         const pageSize = Number(rawPageSize)
+        const filters: TodoFilters = {}
 
         if (Number.isNaN(page) || page < 1) return HttpResponse(res, { statusCode: 400, body: { message: "Page invalid!" } })
         if (Number.isNaN(pageSize) || pageSize < 1) return HttpResponse(res, { statusCode: 400, body: { message: "Pagesize invalid!" } })
         if (pageSize > 50) return HttpResponse(res, { statusCode: 400, body: { message: "Page size cannot exceed 50" } })
 
+        if (typeof rawTitle === 'string' && rawTitle.trim()) filters.title = rawTitle.trim()
+        if (rawIsCompleted === 'true') filters.isCompleted = true
+        else if (rawIsCompleted === 'false') filters.isCompleted = false
+        else if (rawIsCompleted !== undefined) 
+            return HttpResponse(res, { statusCode: 400, body: { message: 'isCompleted must be true or false' } })
+        
         const userId = req.auth?.userId
         if (userId) {
-            const { todos, totalTodos } = await TodoRepository.list(userId.toString(), page, pageSize, {})
+            const { todos, totalTodos } = await TodoRepository.list(userId.toString(), page, pageSize, filters)
             const totalPages = Math.ceil(totalTodos / pageSize)
             return HttpResponse(res, { statusCode: 200, body: { todos, totalTodos, page, pageSize, totalPages } })
         } else {

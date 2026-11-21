@@ -1,7 +1,8 @@
 import TodoService from "../services/service.todo.js"
 import { AppError } from "../types/errors.js"
+import type { TodoFilters } from "../types/todos.js"
 
-const list = async (userId: string, page: number, pageSize: number, filters = {}) => {
+const list = async (userId: string, page: number, pageSize: number, filters: TodoFilters) => {
     try {
         return await TodoService.listTodos(userId, page, pageSize, filters)
     } catch (error) {
