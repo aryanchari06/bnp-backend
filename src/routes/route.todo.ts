@@ -1,13 +1,13 @@
 import express from 'express'
-import { listTodos, create, update, deleteTodo, toggle } from '../controllers/controller.todo.js'
+import { list, create, update, del, toggle } from '../controllers/controller.todo.js'
 import checkAuth from '../middlewares/middleware.auth.js'
 
 const router = express.Router()
 
-router.get('/', checkAuth, listTodos)
+router.get('/', checkAuth, list)
 router.post('/', checkAuth, create)
 router.patch('/', checkAuth, update)
-router.delete('/', checkAuth, deleteTodo)
+router.delete('/', checkAuth, del)
 router.patch('/:todoId', checkAuth, toggle)
 
 export default router

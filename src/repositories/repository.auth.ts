@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs"
-import { getByEmail, getById, registerUser, changeUserPassword } from "../services/service.user.js"
+import UserServices from "../services/service.user.js"
 import jwt from 'jsonwebtoken'
 import { AppError } from "../types/errors.js"
 import mongoose from "mongoose"
@@ -8,11 +8,11 @@ import dotenv from 'dotenv'
 dotenv.config()
 const JWT_SECRET = process.env.JWT_SECRET
 
-export const register = async (username: string, email: string, password: string) => {
+const register = async (username: string, email: string, password: string) => {
     try {
         const salt = bcrypt.genSaltSync(10)
         const hashedPassword = await bcrypt.hash(password, salt)
-        await registerUser({ username, email, hashedPassword })
+        await UserServices.register({ username, email, hashedPassword })
     } catch (error) {
         console.error('Error while registering user: ', error)
         if (error instanceof mongoose.mongo.MongoServerError && error.code === 11000)
@@ -21,9 +21,9 @@ export const register = async (username: string, email: string, password: string
     }
 }
 
-export const login = async (email: string, password: string) => {
+const login = async (email: string, password: string) => {
     try {
-        const userData = await getByEmail(email.trim())
+        const userData = await UserServices.getByEmail(email.trim())
         if (!userData) throw new AppError('USER_NOT_FOUND', 'User not found!', 404)
 
         const { email: userEmail, username, hashedPassword } = userData
@@ -41,9 +41,9 @@ export const login = async (email: string, password: string) => {
     }
 }
 
-export const changePassword = async (userId: string, oldPassword: string, newPassword: string) => {
+const changePassword = async (userId: string, oldPassword: string, newPassword: string) => {
     try {
-        const user = await getById(userId)
+        const user = await UserServices.getById(userId)
         if (!user) throw new AppError('USER_NOT_FOUND', 'User not found', 404)
 
         const { _id, hashedPassword } = user
@@ -52,9 +52,12 @@ export const changePassword = async (userId: string, oldPassword: string, newPas
 
         const salt = bcrypt.genSaltSync(10)
         const newHashedPassword = bcrypt.hashSync(newPassword.trim(), salt)
-        await changeUserPassword(_id.toString(), newHashedPassword)
+        await UserServices.changePassword(_id.toString(), newHashedPassword)
     } catch (error) {
         console.error('Error while changing password: ', error)
         throw error
     }
 }
+
+const AuthRepository = { register, login, changePassword }
+export default AuthRepository

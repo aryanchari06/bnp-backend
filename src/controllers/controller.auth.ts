@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 import * as z from 'zod'
-import { register as registerUser, login as loginUser, changePassword as changeUserPassword } from '../repositories/repository.auth.js'
+import AuthRepository from '../repositories/repository.auth.js'
 
 import { HttpResponse } from '../utils/http-response.js'
 import { connectDB } from '../config/database.js'
@@ -37,7 +37,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         const { success, error: zodError, data } = RegisterPayload.safeParse(req.body)
         if (success) {
             const { username, email, password } = data
-            await registerUser(username, email, password)
+            await AuthRepository.register(username, email, password)
             return HttpResponse(res, { statusCode: 201, body: { message: "User registered!" } })
         } else {
             return HttpResponse(res, {
@@ -58,7 +58,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         const { success, error: zodError, data } = LoginPayload.safeParse(req.body)
         if (success) {
             const { email, password } = data
-            const { username, accessToken, refreshToken } = await loginUser(email, password)
+            const { username, accessToken, refreshToken } = await AuthRepository.login(email, password)
             res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, httpOnly: true, path: '/' }) // set samesite, secure later
             res.cookie('refresh', refreshToken, { maxAge: REFRESH_TOKEN_EXPIRY, httpOnly: true, path: '/auth/refresh' }) // set samesite, secure later
             return HttpResponse(res, { statusCode: 200, body: { message: `Logged in as ${username}!` } })
@@ -83,7 +83,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             const { oldPassword, newPassword } = data
             const userId = req.auth?.userId
             if (userId) {
-                await changeUserPassword(userId, oldPassword, newPassword)
+                await AuthRepository.changePassword(userId, oldPassword, newPassword)
                 return HttpResponse(res, {
                     statusCode: 200,
                     body: { message: "Password changed successfully!" }

@@ -1,43 +1,46 @@
-import { getUserTodos, createTodo as createUserTodo, updateTodo as updateUserTodo, deleteTodo as deleteUserTodo, toggleTodo as toggleUserTodo } from "../services/service.todo.js"
+import TodoService from "../services/service.todo.js"
 import { AppError } from "../types/errors.js"
 
-export const listTodos = async (userId: string, page: number, pageSize: number, filters = {}) => {
+const list = async (userId: string, page: number, pageSize: number, filters = {}) => {
     try {
-        return await getUserTodos(userId, page, pageSize, filters)
+        return await TodoService.listTodos(userId, page, pageSize, filters)
     } catch (error) {
         throw new AppError('INTERNAL_SERVER_ERROR', 'Internal server error!', 500)
     }
 }
 
-export const createTodo = async (userId: string, title: string) => {
+const create = async (userId: string, title: string) => {
     try {
-        return await createUserTodo(title, userId)
+        return await TodoService.createTodo(title, userId)
     } catch (error) {
         throw new AppError('INTERNAL_SERVER_ERROR', 'Internal server error!', 500)
     }
 }
 
-export const updateTodo = async (todoId: string, userId: string, title: string) => {
+const update = async (todoId: string, userId: string, title: string) => {
     try {
-        return await updateUserTodo(todoId, userId, title)
+        return await TodoService.updateTodo(todoId, userId, title)
     } catch (error) {
         throw new AppError('INTERNAL_SERVER_ERROR', 'Internal server error!', 500)
     }
 }
 
-export const toggleTodo = async (todoId: string, userId: string) => {
+const toggle = async (todoId: string, userId: string) => {
     try {
-        return await toggleUserTodo(todoId, userId)
+        return await TodoService.toggleTodo(todoId, userId)
     } catch (error) {
         console.error("ERROR: ", error)
         throw new AppError('INTERNAL_SERVER_ERROR', 'Internal server error!', 500)
     }
 }
 
-export const deleteTodo = async (todoId: string, userId: string) => {
+const del = async (todoId: string, userId: string) => {
     try {
-        return await deleteUserTodo(todoId, userId)
+        return await TodoService.deleteTodo(todoId, userId)
     } catch (error) {
         throw new AppError('INTERNAL_SERVER_ERROR', 'Internal server error!', 500)
     }
 }
+
+const TodoRepository = { list, create, update, toggle, del }
+export default TodoRepository
