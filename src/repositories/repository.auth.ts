@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs"
 import UserServices from "../services/service.user.js"
-import jwt from 'jsonwebtoken'
+import jwt, { type JwtPayload } from 'jsonwebtoken'
 import { AppError } from "../types/errors.js"
 import mongoose from "mongoose"
 import dotenv from 'dotenv'
@@ -31,8 +31,8 @@ const login = async (email: string, password: string) => {
         if (!correctPassword) throw new AppError('INCORRECT_CREDENTIALS', 'Invalid email or password', 401)
 
         if (!JWT_SECRET) throw new AppError('JWT_SECRET_MISSING', 'JWT secret missing', 500)
-        const accessToken = jwt.sign({ username, email: userEmail, sub: String(userData._id) }, JWT_SECRET, { algorithm: "HS256", expiresIn: "1h" })
-        const refreshToken = jwt.sign({}, JWT_SECRET, { algorithm: "HS256", expiresIn: "7d" })
+        const accessToken = jwt.sign({ username, email: userEmail, sub: String(userData._id), tokenUse: 'access' }, JWT_SECRET, { algorithm: "HS256", expiresIn: "15m" })
+        const refreshToken = jwt.sign({ sub: String(userData._id), tokenUse: 'refresh' }, JWT_SECRET, { algorithm: "HS256", expiresIn: "7d" })
 
         return { email, username, accessToken, refreshToken }
     } catch (error) {
@@ -59,5 +59,28 @@ const changePassword = async (userId: string, oldPassword: string, newPassword: 
     }
 }
 
-const AuthRepository = { register, login, changePassword }
+const refresh = async (refreshToken: string) => {
+    if (!JWT_SECRET)
+        throw new AppError('INTERNAL_SERVER_ERROR', 'Internal server error!', 500)
+
+    let decoded: string | JwtPayload
+    try {
+        decoded = jwt.verify(refreshToken, JWT_SECRET, { algorithms: ['HS256'] })
+    } catch {
+        throw new AppError('REFRESH_TOKEN_EXPIRED', 'Refresh token is invalid or expired. Please log in again.', 401)
+    }
+
+    if (typeof decoded === 'string' || typeof decoded.sub !== 'string' || decoded.tokenUse !== 'refresh')
+        throw new AppError('USER_UNAUTHENTICATED', 'Invalid refresh token. Please log in again.', 401)
+
+    const user = await UserServices.getById(decoded.sub)
+    if (!user) throw new AppError('USER_NOT_FOUND', 'User not found!', 404)
+
+    const { _id, username, email } = user
+    const accessToken = jwt.sign({ username, email, sub: String(_id), tokenUse: 'access' }, JWT_SECRET, { algorithm: "HS256", expiresIn: "15m" })
+
+    return { accessToken, refreshToken }
+}
+
+const AuthRepository = { register, login, changePassword, refresh }
 export default AuthRepository

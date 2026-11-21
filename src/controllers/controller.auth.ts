@@ -4,9 +4,8 @@ import AuthRepository from '../repositories/repository.auth.js'
 
 import { HttpResponse } from '../utils/http-response.js'
 import { connectDB } from '../config/database.js'
+import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } from '../utils/constants.js'
 
-const ACCESS_TOKEN_EXPIRY = 1000 * 60 * 60
-const REFRESH_TOKEN_EXPIRY = 1000 * 60 * 60 * 24 * 7
 
 const RegisterPayload = z.object({
     username: z.string({ error: 'Username is required' })
@@ -60,7 +59,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             const { email, password } = data
             const { username, accessToken, refreshToken } = await AuthRepository.login(email, password)
             res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, httpOnly: true, path: '/' }) // set samesite, secure later
-            res.cookie('refresh', refreshToken, { maxAge: REFRESH_TOKEN_EXPIRY, httpOnly: true, path: '/auth/refresh' }) // set samesite, secure later
+            res.cookie('refresh', refreshToken, { maxAge: REFRESH_TOKEN_EXPIRY, httpOnly: true, path: '/api/auth/refresh' }) // set samesite, secure later
             return HttpResponse(res, { statusCode: 200, body: { message: `Logged in as ${username}!` } })
         } else {
             return HttpResponse(res, {
@@ -105,17 +104,40 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
         await connectDB()
 
         const userId = req.auth?.userId
-        if (userId) { 
+        if (userId) {
             // add revocation of refresh token
             // await logout(userId)
 
             res.clearCookie('access', { path: '/' })
-            res.clearCookie('refresh', { path: '/auth/refresh' })
+            res.clearCookie('refresh', { path: '/api/auth/refresh' })
             return HttpResponse(res, {
                 statusCode: 200,
                 body: { message: "Logged out successfully!" }
             })
         } else throw new Error('Somthing went wrong.')
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const refresh = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await connectDB()
+
+        const refreshCookie = req.cookies?.refresh
+        if (refreshCookie) {
+            const { accessToken } = await AuthRepository.refresh(refreshCookie)
+            res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, httpOnly: true, path: '/' }) // set samesite, secure later
+            return HttpResponse(res, {
+                statusCode: 200,
+                body: { message: "Access token generated!" }
+            })
+        } else {
+            return HttpResponse(res, {
+                statusCode: 401,
+                body: { message: "Refresh cookie absent!" }
+            })
+        }
     } catch (error) {
         next(error)
     }
