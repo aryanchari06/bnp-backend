@@ -14,7 +14,10 @@ const app = express()
 
 app.use(cookieParser())
 app.use(express.json())
-app.use(cors({ origin: '*' })) // add configurations later
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+})) // add configurations later
 
 // routes
 app.use('/api', healthRouter)

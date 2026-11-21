@@ -82,5 +82,14 @@ const refresh = async (refreshToken: string) => {
     return { accessToken, refreshToken }
 }
 
-const AuthRepository = { register, login, changePassword, refresh }
+const currentUser = async (userId: string) => {
+    const user = await UserServices.getById(userId)
+    if (!user) throw new AppError('USER_NOT_FOUND', 'User not found!', 404)
+
+    const { hashedPassword, ...userWithoutPassword } = user.toObject()
+    console.log(userWithoutPassword)
+    return userWithoutPassword
+}
+
+const AuthRepository = { register, login, changePassword, refresh, currentUser }
 export default AuthRepository

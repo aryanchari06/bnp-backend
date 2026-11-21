@@ -16,7 +16,7 @@ const getByEmail = async (email: string) => {
 }
 
 const getById = async (userId: string) => {
-    return await User.findOne({ _id: new mongoose.Types.ObjectId(userId) }).select('-id')
+    return await User.findOne({ _id: new mongoose.Types.ObjectId(userId) }).select('-id -__v')
 }
 
 const changePassword = async (userId: string, hashedPassword: string) => {

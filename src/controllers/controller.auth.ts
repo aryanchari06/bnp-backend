@@ -107,14 +107,13 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
         if (userId) {
             // add revocation of refresh token
             // await logout(userId)
-
-            res.clearCookie('access', { path: '/' })
-            res.clearCookie('refresh', { path: '/api/auth/refresh' })
-            return HttpResponse(res, {
-                statusCode: 200,
-                body: { message: "Logged out successfully!" }
-            })
-        } else throw new Error('Somthing went wrong.')
+        }
+        res.clearCookie('access', { path: '/' })
+        res.clearCookie('refresh', { path: '/api/auth/refresh' })
+        return HttpResponse(res, {
+            statusCode: 200,
+            body: { message: "Logged out successfully!" }
+        })
     } catch (error) {
         next(error)
     }
@@ -138,6 +137,24 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
                 body: { message: "Refresh cookie absent!" }
             })
         }
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const self = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await connectDB()
+
+        const userId = req.auth?.userId
+        console.log('userId: ', userId)
+        if (userId) {
+            const userData = await AuthRepository.currentUser(userId)
+            return HttpResponse(res, {
+                statusCode: 200,
+                body: { user: userData }
+            })
+        } else throw new Error('Somthing went wrong.')
     } catch (error) {
         next(error)
     }
