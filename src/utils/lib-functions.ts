@@ -1,2 +1,3 @@
 const formatErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error)
-export { formatErrorMessage }
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+export { formatErrorMessage, escapeRegex }
