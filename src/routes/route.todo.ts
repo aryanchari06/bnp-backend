@@ -7,7 +7,7 @@ const router = express.Router()
 router.get('/', checkAuth, list)
 router.post('/', checkAuth, create)
 router.patch('/', checkAuth, update)
-router.delete('/', checkAuth, del)
+router.delete('/:todoId', checkAuth, del)
 router.patch('/:todoId', checkAuth, toggle)
 
 export default router

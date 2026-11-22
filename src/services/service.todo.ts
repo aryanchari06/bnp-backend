@@ -19,7 +19,7 @@ const listTodos = async (userId: string, page: number, pageSize: number, filters
     if (filters.title?.trim() && filters.title !== undefined)
         query.title = new RegExp(escapeRegex(filters.title.trim()), 'i')
 
-    const todos = await Todo.find(query).limit(pageSize).skip((page - 1) * pageSize).sort({ createdAt: -1 })
+    const todos = await Todo.find(query).limit(pageSize).skip((page - 1) * pageSize).sort({ createdAt: -1 }).select('-__v')
     const totalTodos = await Todo.countDocuments(query)
     return { todos, totalTodos }
 }

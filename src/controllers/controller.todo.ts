@@ -69,7 +69,7 @@ export const create = async (req: Request, res: Response, next: NextFunction) =>
             const userId = req.auth?.userId
             if (userId) {
                 const todo = await TodoRepository.create(userId.toString(), title)
-                return HttpResponse(res, { statusCode: 200, body: { message: "Todo Created!", todoId: todo._id } })
+                return HttpResponse(res, { statusCode: 200, body: { message: "Todo Created!", todo: todo.toObject() } })
             } else {
                 console.error('UserId is missing')
                 throw new Error('Something went wrong')
@@ -146,10 +146,8 @@ export const toggle = async (req: Request, res: Response, next: NextFunction) =>
 
 export const del = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        if (!req.body)
-            return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
         await connectDB()
-        const { success, error: zodError, data } = TodoIdPayload.safeParse(req.body)
+        const { success, error: zodError, data } = TodoIdPayload.safeParse(req.params)
         if (success) {
             const { todoId } = data
             const userId = req.auth?.userId
