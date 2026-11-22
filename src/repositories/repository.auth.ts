@@ -10,6 +10,10 @@ const JWT_SECRET = process.env.JWT_SECRET
 
 const register = async (username: string, email: string, password: string) => {
     try {
+        const existingUser = await UserServices.getByEmail(email)
+        if (existingUser) {
+            throw new AppError('USER_ALREADY_EXISTS', 'Credentials already in use!', 409)
+        }
         const salt = bcrypt.genSaltSync(10)
         const hashedPassword = await bcrypt.hash(password, salt)
         await UserServices.register({ username, email, hashedPassword })
@@ -17,6 +21,7 @@ const register = async (username: string, email: string, password: string) => {
         console.error('Error while registering user: ', error)
         if (error instanceof mongoose.mongo.MongoServerError && error.code === 11000)
             throw new AppError('USER_ALREADY_EXISTS', 'Credentials already in use!', 409)
+        else if (error instanceof AppError) throw error
         throw new AppError('INTERNAL_SERVER_ERROR', 'Internal server error!', 500)
     }
 }
@@ -48,7 +53,7 @@ const changePassword = async (userId: string, oldPassword: string, newPassword: 
 
         const { _id, hashedPassword } = user
         const correctPassword = bcrypt.compareSync(oldPassword.trim(), hashedPassword)
-        if (!correctPassword) throw new AppError('INCORRECT_CREDENTIALS', 'Incorrect old password', 409)
+        if (!correctPassword) throw new AppError('INCORRECT_CREDENTIALS', 'Incorrect old password', 400)
 
         const salt = bcrypt.genSaltSync(10)
         const newHashedPassword = bcrypt.hashSync(newPassword.trim(), salt)

@@ -147,7 +147,6 @@ export const self = async (req: Request, res: Response, next: NextFunction) => {
         await connectDB()
 
         const userId = req.auth?.userId
-        console.log('userId: ', userId)
         if (userId) {
             const userData = await AuthRepository.currentUser(userId)
             return HttpResponse(res, {

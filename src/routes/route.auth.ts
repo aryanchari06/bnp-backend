@@ -7,7 +7,7 @@ router.post('/register', register)
 router.post('/login', login)
 router.post('/change-password', checkAuth, changePassword)
 router.post('/logout', logout)
-router.post('/refresh', refresh)
+router.get('/refresh', refresh)
 router.get('/self', checkAuth, self)
 
 export default router
