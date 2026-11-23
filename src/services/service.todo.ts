@@ -67,5 +67,17 @@ const deleteTodo = async (todoId: string, userId: string) => {
     })
 }
 
-const TodoService = { createTodo, updateTodo, deleteTodo, toggleTodo, listTodos }
+const todoStats = async (userId: string) => {
+    const totalTodos = await Todo.countDocuments({
+        userId: new mongoose.Types.ObjectId(userId)
+    })
+    const completedTodos = await Todo.countDocuments({
+        userId: new mongoose.Types.ObjectId(userId),
+        isCompleted: true
+    })
+
+    return { totalTodos, completedTodos }
+}
+
+const TodoService = { createTodo, updateTodo, deleteTodo, toggleTodo, listTodos, todoStats }
 export default TodoService

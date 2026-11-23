@@ -41,9 +41,9 @@ export const list = async (req: Request, res: Response, next: NextFunction) => {
         if (typeof rawTitle === 'string' && rawTitle.trim()) filters.title = rawTitle.trim()
         if (rawIsCompleted === 'true') filters.isCompleted = true
         else if (rawIsCompleted === 'false') filters.isCompleted = false
-        else if (rawIsCompleted !== undefined) 
+        else if (rawIsCompleted !== undefined)
             return HttpResponse(res, { statusCode: 400, body: { message: 'isCompleted must be true or false' } })
-        
+
         const userId = req.auth?.userId
         if (userId) {
             const { todos, totalTodos } = await TodoRepository.list(userId.toString(), page, pageSize, filters)
@@ -165,6 +165,23 @@ export const del = async (req: Request, res: Response, next: NextFunction) => {
                 statusCode: 400,
                 body: { message: zodError.issues[0]?.message ?? 'Invalid request data' }
             })
+        }
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const stats = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await connectDB()
+
+        const userId = req.auth?.userId
+        if (userId) {
+            const { completedTodos, totalTodos } = await TodoRepository.stats(userId.toString())
+            return HttpResponse(res, { statusCode: 200, body: { completedTodos, totalTodos } })
+        } else {
+            console.error('UserId is missing')
+            throw new Error('Something went wrong')
         }
     } catch (error) {
         next(error)

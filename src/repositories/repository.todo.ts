@@ -43,5 +43,13 @@ const del = async (todoId: string, userId: string) => {
     }
 }
 
-const TodoRepository = { list, create, update, toggle, del }
+const stats = async (userId: string) => {
+    try {
+        return await TodoService.todoStats(userId)
+    } catch (error) {
+        throw new AppError('INTERNAL_SERVER_ERROR', 'Internal server error!', 500)
+    }
+}
+
+const TodoRepository = { list, create, update, toggle, del, stats }
 export default TodoRepository

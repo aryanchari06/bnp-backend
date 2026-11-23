@@ -92,7 +92,6 @@ const currentUser = async (userId: string) => {
     if (!user) throw new AppError('USER_NOT_FOUND', 'User not found!', 404)
 
     const { hashedPassword, ...userWithoutPassword } = user.toObject()
-    console.log(userWithoutPassword)
     return userWithoutPassword
 }
 
