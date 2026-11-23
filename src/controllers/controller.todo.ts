@@ -7,11 +7,13 @@ import type { TodoFilters } from '../types/todos.js'
 
 const CreatePayload = z.object({
     title: z.string({ error: 'Title is required' })
-        .min(3, { error: 'title needs at least 3 characters' })
+        .trim()
+        .min(3, { error: 'Title needs at least 3 characters' })
         .max(255, { error: 'Title too long!' }),
 })
 const UpdatePayload = z.object({
     title: z.string({ error: 'Title is required' })
+        .trim()
         .min(3, { error: 'Title needs at least 3 characters' })
         .max(255, { error: 'Title too long!' }),
     todoId: z.string({ error: 'TodoId must be a string' })
