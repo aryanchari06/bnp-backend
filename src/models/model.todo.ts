@@ -16,5 +16,7 @@ const TodoSchema = new mongoose.Schema({
     }
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } })
 
+TodoSchema.index({ userId: 1, createdAt: -1})
+
 const Todo = mongoose.model('Todo', TodoSchema)
 export default Todo
