@@ -10,13 +10,13 @@ const JWT_SECRET = process.env.JWT_SECRET
 
 const register = async (username: string, email: string, password: string) => {
     try {
-        const existingUser = await UserServices.getByEmail(email)
+        const existingUser = await UserServices.getByEmail(email.trim().toLowerCase())
         if (existingUser) {
             throw new AppError('USER_ALREADY_EXISTS', 'Credentials already in use!', 409)
         }
-        const salt = bcrypt.genSaltSync(10)
+        const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
-        await UserServices.register({ username, email, hashedPassword })
+        await UserServices.register({ username, email: email.toLowerCase(), hashedPassword })
     } catch (error) {
         console.error('Error while registering user: ', error)
         if (error instanceof mongoose.mongo.MongoServerError && error.code === 11000)
@@ -28,15 +28,15 @@ const register = async (username: string, email: string, password: string) => {
 
 const login = async (email: string, password: string) => {
     try {
-        const userData = await UserServices.getByEmail(email.trim())
-        if (!userData) throw new AppError('USER_NOT_FOUND', 'User not found!', 404)
+        const userData = await UserServices.getByEmail(email.trim().toLowerCase())
+        if (!userData) throw new AppError('USER_NOT_FOUND', 'Invalid email or password!', 401)
 
         const { email: userEmail, username, hashedPassword } = userData
-        const correctPassword = bcrypt.compareSync(password.trim(), hashedPassword)
+        const correctPassword = await bcrypt.compare(password.trim(), hashedPassword)
         if (!correctPassword) throw new AppError('INCORRECT_CREDENTIALS', 'Invalid email or password', 401)
 
         if (!JWT_SECRET) throw new AppError('JWT_SECRET_MISSING', 'JWT secret missing', 500)
-        const accessToken = jwt.sign({ username, email: userEmail, sub: String(userData._id), tokenUse: 'access' }, JWT_SECRET, { algorithm: "HS256", expiresIn: "15m" })
+        const accessToken = jwt.sign({ username, email: userEmail.toLowerCase(), sub: String(userData._id), tokenUse: 'access' }, JWT_SECRET, { algorithm: "HS256", expiresIn: "15m" })
         const refreshToken = jwt.sign({ sub: String(userData._id), tokenUse: 'refresh' }, JWT_SECRET, { algorithm: "HS256", expiresIn: "7d" })
 
         return { email, username, accessToken, refreshToken }
@@ -52,11 +52,11 @@ const changePassword = async (userId: string, oldPassword: string, newPassword: 
         if (!user) throw new AppError('USER_NOT_FOUND', 'User not found', 404)
 
         const { _id, hashedPassword } = user
-        const correctPassword = bcrypt.compareSync(oldPassword.trim(), hashedPassword)
+        const correctPassword = await bcrypt.compare(oldPassword.trim(), hashedPassword)
         if (!correctPassword) throw new AppError('INCORRECT_CREDENTIALS', 'Incorrect old password', 400)
 
-        const salt = bcrypt.genSaltSync(10)
-        const newHashedPassword = bcrypt.hashSync(newPassword.trim(), salt)
+        const salt = await bcrypt.genSalt(10)
+        const newHashedPassword = await bcrypt.hash(newPassword.trim(), salt)
         await UserServices.changePassword(_id.toString(), newHashedPassword)
     } catch (error) {
         console.error('Error while changing password: ', error)
