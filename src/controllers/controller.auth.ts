@@ -4,9 +4,9 @@ import AuthRepository from '../repositories/repository.auth.js'
 
 import { HttpResponse } from '../utils/http-response.js'
 import { connectDB } from '../config/database.js'
+import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } from '../utils/constants.js'
+import mongoose from 'mongoose'
 
-const ACCESS_TOKEN_EXPIRY = 1000 * 60 * 60
-const REFRESH_TOKEN_EXPIRY = 1000 * 60 * 60 * 24 * 7
 
 const RegisterPayload = z.object({
     username: z.string({ error: 'Username is required' })
@@ -33,7 +33,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     try {
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = RegisterPayload.safeParse(req.body)
         if (success) {
             const { username, email, password } = data
@@ -54,13 +55,14 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     try {
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = LoginPayload.safeParse(req.body)
         if (success) {
             const { email, password } = data
-            const { username, accessToken, refreshToken } = await AuthRepository.login(email, password)
+            const { username, accessToken, refreshToken } = await AuthRepository.login(email.toLowerCase(), password)
             res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, httpOnly: true, path: '/' }) // set samesite, secure later
-            res.cookie('refresh', refreshToken, { maxAge: REFRESH_TOKEN_EXPIRY, httpOnly: true, path: '/auth/refresh' }) // set samesite, secure later
+            res.cookie('refresh', refreshToken, { maxAge: REFRESH_TOKEN_EXPIRY, httpOnly: true, path: '/api/auth/refresh' }) // set samesite, secure later
             return HttpResponse(res, { statusCode: 200, body: { message: `Logged in as ${username}!` } })
         } else {
             return HttpResponse(res, {
@@ -77,7 +79,8 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
     try {
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = ChangePasswordPayload.safeParse(req.body)
         if (success) {
             const { oldPassword, newPassword } = data
@@ -88,7 +91,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
                     statusCode: 200,
                     body: { message: "Password changed successfully!" }
                 })
-            }
+            } else throw new Error('Somthing went wrong.')
         } else {
             return HttpResponse(res, {
                 statusCode: 400,
@@ -102,18 +105,60 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
 
         const userId = req.auth?.userId
-        if (userId) { 
+        if (userId) {
             // add revocation of refresh token
             // await logout(userId)
+        }
+        res.clearCookie('access', { path: '/' })
+        res.clearCookie('refresh', { path: '/api/auth/refresh' })
+        return HttpResponse(res, {
+            statusCode: 200,
+            body: { message: "Logged out successfully!" }
+        })
+    } catch (error) {
+        next(error)
+    }
+}
 
-            res.clearCookie('access', { path: '/' })
-            res.clearCookie('refresh', { path: '/auth/refresh' })
+export const refresh = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
+
+        const refreshCookie = req.cookies?.refresh
+        if (refreshCookie) {
+            const { accessToken } = await AuthRepository.refresh(refreshCookie)
+            res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, httpOnly: true, path: '/' }) // set samesite, secure later
             return HttpResponse(res, {
                 statusCode: 200,
-                body: { message: "Logged out successfully!" }
+                body: { message: "Access token generated!" }
+            })
+        } else {
+            return HttpResponse(res, {
+                statusCode: 401,
+                body: { message: "Refresh cookie absent!" }
+            })
+        }
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const self = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
+
+        const userId = req.auth?.userId
+        if (userId) {
+            const userData = await AuthRepository.currentUser(userId)
+            return HttpResponse(res, {
+                statusCode: 200,
+                body: { user: userData }
             })
         } else throw new Error('Somthing went wrong.')
     } catch (error) {

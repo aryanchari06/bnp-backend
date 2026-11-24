@@ -6,7 +6,9 @@ export type AppErrorCode =
     'INTERNAL_SERVER_ERROR' |
     'DATABASE_CONNECTION_FAILED' |
     'USER_UNAUTHENTICATED' |
-    'ACCESS_TOKEN_EXPIRED'
+    'ACCESS_TOKEN_EXPIRED' |
+    'REFRESH_TOKEN_EXPIRED' |
+    'INVALID_REFRESH_TOKEN'
 
 export class AppError extends Error {
     constructor(
