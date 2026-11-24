@@ -7,6 +7,7 @@ import healthRouter from './routes/route.health.js'
 import authRouter from './routes/route.auth.js'
 import todoRouter from './routes/route.todo.js'
 import errorHandler from './middlewares/middleware.error-handler.js'
+import { connectDB } from './config/database.js'
 
 dotenv.config()
 const PORT = process.env.PORT || 8000
@@ -26,6 +27,13 @@ app.use('/api/todos', todoRouter)
 
 //error handler middleware
 app.use(errorHandler)
+
+try {
+    await connectDB()
+} catch (error) {
+    console.error(error)
+    throw new Error("Failed to connect to database.")
+}
 
 app.listen(PORT, () => {
     console.log(`Listening on PORT: ${PORT}`)

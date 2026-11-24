@@ -4,6 +4,7 @@ import TodoRepository from '../repositories/repository.todo.js'
 import { HttpResponse } from "../utils/http-response.js";
 import * as z from 'zod'
 import type { TodoFilters } from '../types/todos.js'
+import mongoose from "mongoose";
 
 const CreatePayload = z.object({
     title: z.string({ error: 'Title is required' })
@@ -29,7 +30,8 @@ const TodoIdPayload = z.object({
 
 export const list = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
 
         const { page: rawPage = 1, pageSize: rawPageSize = 10, title: rawTitle, isCompleted: rawIsCompleted } = req.query
         const page = Number(rawPage)
@@ -37,7 +39,9 @@ export const list = async (req: Request, res: Response, next: NextFunction) => {
         const filters: TodoFilters = {}
 
         if (Number.isNaN(page) || page < 1) return HttpResponse(res, { statusCode: 400, body: { message: "Page invalid!" } })
+        if (!Number.isInteger(page)) return HttpResponse(res, { statusCode: 400, body: { message: "Page invalid!" } })
         if (Number.isNaN(pageSize) || pageSize < 1) return HttpResponse(res, { statusCode: 400, body: { message: "Pagesize invalid!" } })
+        if (!Number.isInteger(pageSize)) return HttpResponse(res, { statusCode: 400, body: { message: "Pagesize invalid!" } })
         if (pageSize > 50) return HttpResponse(res, { statusCode: 400, body: { message: "Page size cannot exceed 50" } })
 
         if (typeof rawTitle === 'string' && rawTitle.trim()) filters.title = rawTitle.trim()
@@ -64,7 +68,8 @@ export const create = async (req: Request, res: Response, next: NextFunction) =>
     try {
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = CreatePayload.safeParse(req.body)
         if (success) {
             const { title } = data
@@ -92,7 +97,8 @@ export const update = async (req: Request, res: Response, next: NextFunction) =>
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
 
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = UpdatePayload.safeParse(req.body)
         if (success) {
             const { title, todoId } = data
@@ -120,7 +126,8 @@ export const update = async (req: Request, res: Response, next: NextFunction) =>
 
 export const toggle = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = TodoIdPayload.safeParse(req.params)
         if (success) {
             const { todoId } = data
@@ -148,7 +155,8 @@ export const toggle = async (req: Request, res: Response, next: NextFunction) =>
 
 export const del = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = TodoIdPayload.safeParse(req.params)
         if (success) {
             const { todoId } = data
@@ -175,7 +183,8 @@ export const del = async (req: Request, res: Response, next: NextFunction) => {
 
 export const stats = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
 
         const userId = req.auth?.userId
         if (userId) {

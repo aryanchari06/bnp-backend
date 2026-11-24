@@ -5,6 +5,7 @@ import AuthRepository from '../repositories/repository.auth.js'
 import { HttpResponse } from '../utils/http-response.js'
 import { connectDB } from '../config/database.js'
 import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } from '../utils/constants.js'
+import mongoose from 'mongoose'
 
 
 const RegisterPayload = z.object({
@@ -32,7 +33,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     try {
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = RegisterPayload.safeParse(req.body)
         if (success) {
             const { username, email, password } = data
@@ -53,11 +55,12 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     try {
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = LoginPayload.safeParse(req.body)
         if (success) {
             const { email, password } = data
-            const { username, accessToken, refreshToken } = await AuthRepository.login(email, password)
+            const { username, accessToken, refreshToken } = await AuthRepository.login(email.toLowerCase(), password)
             res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, httpOnly: true, path: '/' }) // set samesite, secure later
             res.cookie('refresh', refreshToken, { maxAge: REFRESH_TOKEN_EXPIRY, httpOnly: true, path: '/api/auth/refresh' }) // set samesite, secure later
             return HttpResponse(res, { statusCode: 200, body: { message: `Logged in as ${username}!` } })
@@ -76,7 +79,8 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
     try {
         if (!req.body)
             return HttpResponse(res, { statusCode: 400, body: { message: "Request body missing!" } })
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
         const { success, error: zodError, data } = ChangePasswordPayload.safeParse(req.body)
         if (success) {
             const { oldPassword, newPassword } = data
@@ -87,7 +91,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
                     statusCode: 200,
                     body: { message: "Password changed successfully!" }
                 })
-            }
+            } else throw new Error('Somthing went wrong.')
         } else {
             return HttpResponse(res, {
                 statusCode: 400,
@@ -101,7 +105,8 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
 
         const userId = req.auth?.userId
         if (userId) {
@@ -121,7 +126,8 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 
 export const refresh = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
 
         const refreshCookie = req.cookies?.refresh
         if (refreshCookie) {
@@ -144,7 +150,8 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
 
 export const self = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await connectDB()
+        if (mongoose.connection.readyState !== 1)
+            await connectDB()
 
         const userId = req.auth?.userId
         if (userId) {
