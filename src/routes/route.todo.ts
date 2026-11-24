@@ -7,7 +7,7 @@ const ONE_MIN = 60 * 1000
 
 const router = express.Router()
 
-router.get('/', checkAuth, rateLimit({ limit: 10, windowMs: ONE_MIN }), list)
+router.get('/', checkAuth, rateLimit({ limit: 60, windowMs: ONE_MIN }), list)
 router.post('/', checkAuth, rateLimit({ limit: 20, windowMs: ONE_MIN }), create)
 router.patch('/', checkAuth, rateLimit({ limit: 30, windowMs: ONE_MIN }), update)
 router.delete('/:todoId', checkAuth, rateLimit({ limit: 30, windowMs: ONE_MIN }), del)
