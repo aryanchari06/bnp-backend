@@ -1,12 +1,26 @@
 import type { NextFunction, Request, Response } from 'express'
 import * as z from 'zod'
 import AuthRepository from '../repositories/repository.auth.js'
-
+import dotenv from 'dotenv'
 import { HttpResponse } from '../utils/http-response.js'
 import { connectDB } from '../config/database.js'
 import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } from '../utils/constants.js'
 import mongoose from 'mongoose'
 
+dotenv.config()
+const isProd = process.env.NODE_ENV === 'production'
+
+type CookieConfigType = {
+    secure: boolean
+    sameSite: 'lax' | 'strict' | 'none'
+    httpOnly: boolean
+}
+
+const cookieConfig: CookieConfigType = {
+    secure: isProd,
+    sameSite: 'lax',
+    httpOnly: true
+}
 
 const RegisterPayload = z.object({
     username: z.string({ error: 'Username is required' })
@@ -61,8 +75,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         if (success) {
             const { email, password } = data
             const { username, accessToken, refreshToken } = await AuthRepository.login(email.toLowerCase(), password)
-            res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, httpOnly: true, path: '/' }) // set samesite, secure later
-            res.cookie('refresh', refreshToken, { maxAge: REFRESH_TOKEN_EXPIRY, httpOnly: true, path: '/api/auth/refresh' }) // set samesite, secure later
+            res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, path: '/', ...cookieConfig })
+            res.cookie('refresh', refreshToken, { maxAge: REFRESH_TOKEN_EXPIRY, path: '/api/auth/refresh', ...cookieConfig })
             return HttpResponse(res, { statusCode: 200, body: { message: `Logged in as ${username}!` } })
         } else {
             return HttpResponse(res, {
@@ -113,8 +127,8 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
             // add revocation of refresh token
             // await logout(userId)
         }
-        res.clearCookie('access', { path: '/' })
-        res.clearCookie('refresh', { path: '/api/auth/refresh' })
+        res.clearCookie('access', { path: '/', ...cookieConfig })
+        res.clearCookie('refresh', { path: '/api/auth/refresh', ...cookieConfig })
         return HttpResponse(res, {
             statusCode: 200,
             body: { message: "Logged out successfully!" }
@@ -132,7 +146,7 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
         const refreshCookie = req.cookies?.refresh
         if (refreshCookie) {
             const { accessToken } = await AuthRepository.refresh(refreshCookie)
-            res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, httpOnly: true, path: '/' }) // set samesite, secure later
+            res.cookie('access', accessToken, { maxAge: ACCESS_TOKEN_EXPIRY, path: '/', ...cookieConfig }) // set samesite, secure later
             return HttpResponse(res, {
                 statusCode: 200,
                 body: { message: "Access token generated!" }
